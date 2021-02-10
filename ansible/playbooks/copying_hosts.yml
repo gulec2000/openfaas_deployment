@@ -1,0 +1,9 @@
+---
+- hosts: all
+  tasks:
+  - name: Ansible copy file to remote server
+    copy:
+      src: /root/openfaas_deployment/ansible/files/hosts
+      dest: /etc/hosts 
+  
+  

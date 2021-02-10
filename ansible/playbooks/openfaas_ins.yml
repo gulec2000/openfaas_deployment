@@ -1,0 +1,95 @@
+---
+- hosts: master
+  tasks: 
+  
+  - name: Install helm3 installer  from scripts
+    shell: curl -sSLf https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+  - name: Import the packages' authentication key
+    shell: curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
+
+  - name: Ensure the prerequisite packages are installed.
+    shell: apt-get install apt-transport-https --yes
+
+  - name: Add the helm repository as an apt source
+    shell: echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+
+  - name: Update all packages on a Debian/Ubuntu
+    apt:
+        update_cache: yes
+        upgrade: dist
+  
+  - name: Reboot box if kernel/libs updated and requested by the system
+    shell: sleep 10 && /sbin/shutdown -r now 'Rebooting box to update system libs/kernel as needed' 
+    args:
+        removes: /var/run/reboot-required
+    async: 300
+    poll: 0
+    ignore_errors: true
+  
+  - name: Wait for system to become reachable again
+    wait_for_connection:
+        delay: 60
+        timeout: 30
+  - name: Verify new update (optional)
+    command: uname -mrs
+    register: uname_result
+  - name: Display new kernel version
+    debug:
+        var: uname_result.stdout_lines
+  - name: Install Helm with apt
+    shell: apt-get install helm
+  - name: Verify that helm is installed by checking it’s current version
+    shell: helm version
+    register: output
+  - debug: msg="{{ output.stdout }}"
+
+  - name: Leverage the KUBECONFIG environment variable
+    shell: touch /root/.kube/config
+
+  - name: Copy the k3s.yaml file into .kube/config
+    copy: 
+      src: /etc/rancher/k3s/k3s.yaml 
+      dest: /root/.kube/config
+  - name: Config file access change
+    shell: chmod 400 /root/.kube/config
+
+  - name: Create 2 openfaas and openfaas-fn namespaces
+    shell: |
+      kubectl apply -f https://raw.githubusercontent.com/openfaas/faas-netes/master/namespaces.yml
+      helm repo add openfaas https://openfaas.github.io/faas-netes/
+      helm repo update && helm upgrade openfaas --install openfaas/openfaas --namespace openfaas --set functionNamespace=openfaas-fn --set generateBasicAuth=true --set openfaasPRO=false --set ingress.enabled=true
+      PASSWORD=$(kubectl -n openfaas get secret basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode)
+      echo "OpenFaaS admin password: $PASSWORD"
+      export OPENFAAS_URL=http://159.69.209.165:31112
+      echo -n $PASSWORD | faas-cli login -g $OPENFAAS_URL -u admin --password $PASSWORD
+
+  #- name: Add the OpenFaaS helm chart
+  #  shell: helm repo add openfaas https://openfaas.github.io/faas-netes/
+#
+  #- name: Deploy OpenFaaS from the helm chart repo
+  #  shell: helm repo update && helm upgrade openfaas --install openfaas/openfaas --namespace openfaas --set functionNamespace=openfaas-fn --set generateBasicAuth=true --set openfaasPRO=false --set ingress.enabled=true
+  #
+  #- name: Retrieve the OpenFaaS credentials
+  #  shell: 'PASSWORD=$(kubectl -n openfaas get secret basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode) && echo "OpenFaaS admin password: $PASSWORD"'
+#
+  #- name: Verify OpenFaas Installation
+  #  shell: kubectl -n openfaas get deployments -l "release=openfaas, app=openfaas"
+  #  register: output
+  #- debug: msg="{{ output.stdout }}"
+#
+  #- name: Leverage OPENFAAS_URL environment variable
+  #  shell: export OPENFAAS_URL=http://159.69.209.165:31112
+#
+  #- name: Login in to OpenFaaS from CLI 
+  #  shell: echo -n $PASSWORD | faas-cli login -g $OPENFAAS_URL -u admin --password $PASSWORD
+
+  - name: Verify OpenFaas connection
+    shell: faas-cli version
+    register: output
+  - debug: msg="{{ output.stdout }}"
+   
+
+
+# - name: add ec2-user to docker group # when not root user
+#   shell: "usermod -a -G docker master"

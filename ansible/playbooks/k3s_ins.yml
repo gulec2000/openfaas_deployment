@@ -1,0 +1,16 @@
+---
+- hosts: master
+  tasks:
+  - name: Install k3s
+    shell: curl -sfL https://get.k3s.io | sh -s
+  - name: start docker
+    service:
+      name: k3s
+      state: started
+      enabled: yes
+  - name: check k3s status
+    shell: "systemctl status k3s"
+    register: output
+
+  - debug: msg="{{ output.stdout }}"
+

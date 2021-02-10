@@ -1,0 +1,12 @@
+---
+- hosts: master
+  tasks:
+  - name: Install faas-cli
+    shell: curl -sSL https://cli.openfaas.com | sh
+  
+  - name: check faas-cli version
+    shell: "faas-cli version"
+    register: output
+
+  - debug: msg="{{ output.stdout }}"
+

@@ -1,0 +1,45 @@
+#---
+#- hosts: master
+#  tasks:
+#  - name: extract the node-token
+#    shell: "echo $(cat /var/lib/rancher/k3s/server/node-token)"
+#    register: output
+#  - debug: msg="{{ output.stdout }}"
+#
+#  - name: export token to the environment
+#    shell: "export K3S_TOKEN={{ output.stdout }}"
+#
+#  - name: Get k3s node-token for agents
+#    shell: cat /var/lib/rancher/k3s/server/node-token
+#    register: node-token-for-agents
+#
+#  - debug: msg='{{ node-token-for-agents.stdout }}'
+#
+#  - name: register agent worker with variable
+#    add_host:
+#      name: "grand_master"
+#      shell: "curl -sfL http://get.k3s.io | K3S_URL=https://159.69.209.165:6443 K3S_TOKEN=<join_token> sh -s agent"
+#      worker_join: "{{ node-token-for-agents.stdout }}"
+---
+- hosts: master
+  become: yes
+  become_method: sudo
+  tasks:
+    - name: fetch the server token
+      fetch:
+        src: /var/lib/rancher/k3s/server/node-token
+        dest: "./node-token"
+        flat: yes
+      when: inventory_hostname in groups.all
+      run_once: yes 
+
+- hosts: workers
+  tasks:
+    - set_fact:
+        k3s_url: "https://{{ hostvars[groups['master'][0]]['ansible_default_ipv4']['address'] }}:6443"
+        k3s_token: "{{ lookup('file','./node-token')  }}"
+    - name: install k3s on nodes
+      shell: "curl -sfL https://get.k3s.io | K3S_URL={{ k3s_url }} K3S_TOKEN={{ k3s_token }} sh -"
+      args:
+        warn: no
+  
