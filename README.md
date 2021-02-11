@@ -194,3 +194,24 @@ export OPENFAAS_URL=http://<master_IP>:31112
 echo -n $PASSWORD | faas-cli login -g $OPENFAAS_URL -u admin --password-stdin
 faas-cli version
 ```
+
+## Automatisirte OpenFaaS-Bereitstellung
+* **Einfach führen Sie das <openfaas_deployment_on_k3s.sh> mit bash aus**
+
+```
+/root/openfaas_deployment/ansible/scripts/openfaas_deployment_on_k3s.sh
+```
+* **Um OpenFaaS Dashboar zu öffnen**
+*Als erstes durchsuchen Sie das Webseite:*
+```
+http://<master_IP>:31112/ui
+```
+*Zweitens kriegen Sie den Password von terminal*
+```
+PASSWORD=$(kubectl -n openfaas get secret basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode) && \
+echo "OpenFaaS admin password: $PASSWORD"
+```
+oder Sie können einfach das Password von openfaas_deployment/files kriegen
+```
+openfaas_password.txt
+```
