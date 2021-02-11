@@ -61,6 +61,7 @@
       helm repo update && helm upgrade openfaas --install openfaas/openfaas --namespace openfaas --set functionNamespace=openfaas-fn --set generateBasicAuth=true --set openfaasPRO=false --set ingress.enabled=true
       PASSWORD=$(kubectl -n openfaas get secret basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode)
       echo "OpenFaaS admin password: $PASSWORD"
+      PASSWORD=$(kubectl -n openfaas get secret basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode) > openfaas_password.txt
       export OPENFAAS_URL=http://159.69.209.165:31112
       echo -n $PASSWORD | faas-cli login -g $OPENFAAS_URL -u admin --password $PASSWORD
 
