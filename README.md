@@ -18,11 +18,11 @@ $ sudo apt install ansible
 
 ```
 [master]
-159.69.209.165 ansible_user=master      
+159.69.209.165    
 
 [workers]
-157.90.27.66 ansible_user=worker-1     
-78.47.152.129 ansible_user=worker-2    
+157.90.27.66     
+78.47.152.129    
 ```
 * **Erstellung SSH-Key für die SSH Verbindung**
 
